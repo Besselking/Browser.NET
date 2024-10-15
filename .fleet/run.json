@@ -1,0 +1,36 @@
+{
+    "configurations": [
+        {
+            "type": "dotnet",
+            "name": "Browser - text.html https",
+            "projectPath": "Browser/Browser.csproj",
+            "args": [
+                "http://localhost:9000/text.html"
+            ],
+        },
+        {
+            "type": "dotnet",
+            "name": "Browser - text.html file",
+            "projectPath": "Browser/Browser.csproj",
+            "args": [
+                "file://$PROJECT_DIR$/Browser/text.html"
+            ],
+        },
+        {
+            "type": "dotnet",
+            "name": "Browser - data url",
+            "projectPath": "Browser/Browser.csproj",
+            "args": [
+                "data:text/html,Hello world!<sup>2</sup>"
+            ],
+        },
+        {
+            "type": "dotnet",
+            "name": "Browser - redirect",
+            "projectPath": "Browser/Browser.csproj",
+            "args": [
+                "http://browser.engineering/redirect3"
+            ],
+        },
+    ]
+}
