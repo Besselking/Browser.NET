@@ -21,7 +21,7 @@
             "name": "Browser - data url",
             "projectPath": "Browser/Browser.csproj",
             "args": [
-                "data:text/html,Hello world!<sup>2</sup>"
+                "data:text/html,<body>Hello world!<sup>2</sup></body>"
             ],
         },
         {

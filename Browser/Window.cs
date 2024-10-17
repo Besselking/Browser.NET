@@ -6,17 +6,17 @@ using SkiaSharp;
 
 namespace Browser;
 
-public class Window : GameWindow
+internal class Window : GameWindow
 {
-    private readonly List<Token> _tokens;
+    private readonly Node _rootnode;
     private GRContext? _skiaCtx;
     private SKSurface? _skSurface;
     private DisplayList _displayList;
 
-    public Window(string title, List<Token> tokens)
+    public Window(string title, Node rootnode)
         : base(GetDefaultDws(), GetDefaultNws(title))
     {
-        _tokens = tokens;
+        _rootnode = rootnode;
         _displayList = [];
     }
 
@@ -60,7 +60,7 @@ public class Window : GameWindow
         base.OnLoad();
         SkiaInit();
 
-        _displayList = Layout.CreateLayout(FramebufferSize.X, _tokens);
+        _displayList = Layout.CreateLayout(FramebufferSize.X, _rootnode);
     }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
@@ -68,14 +68,14 @@ public class Window : GameWindow
         base.OnMouseWheel(e);
 
         Vector2 deltaScroll = new Vector2(e.OffsetX, e.OffsetY);
-        _scroll -= deltaScroll * 2;
+        _scroll -= deltaScroll * 5;
     }
 
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
     {
         SkiaResize(e.Width, e.Height);
 
-        _displayList = Layout.CreateLayout(e.Width, _tokens);
+        _displayList = Layout.CreateLayout(e.Width, _rootnode);
         Draw();
 
         base.OnFramebufferResize(e);

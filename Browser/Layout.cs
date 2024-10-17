@@ -20,8 +20,8 @@ internal sealed class Layout
     private SKTypeface? _italicFont;
     private SKTypeface? _boldItalicFont;
 
-    private Token? _prev;
-    private Token? _current;
+    private Node? _prev;
+    private Node? _current;
 
     internal Layout(int width)
     {
@@ -29,37 +29,48 @@ internal sealed class Layout
         _styleStack.Push(new());
     }
 
-    internal static DisplayList CreateLayout(int width, List<Token> tokens)
+    internal static DisplayList CreateLayout(int width, Node rootnode)
     {
-        // Console.WriteLine("Relayout");
         Layout layout = new(width);
 
-        foreach (Token tok in tokens)
-        {
-            // await Task.Delay(10);
-            layout.Token(tok);
-        }
-
+        layout.Recurse(rootnode);
         layout.Flush();
 
         return layout.DisplayList;
     }
 
-    private void Token(Token tok)
+    private void Recurse(Node tree)
     {
         _prev = _current;
-        _current = tok;
-        // Console.WriteLine(tok);
-        switch (tok)
+        _current = tree;
+        switch (tree)
         {
-            case Text textToken:
+            case Text text:
             {
-                string whitespaceNormalized = Regex.Replace(textToken.TextContent, "[ \t]*\n[ \t]", "\n");
-                var textContent = WebUtility.HtmlDecode(whitespaceNormalized).AsSpan();
+                var textContent = WebUtility.HtmlDecode(text.TextContent).AsSpan();
                 Word(textContent);
                 break;
             }
-            case Tag { TagName: "i" }:
+            case Element elem:
+            {
+                OpenTag(elem);
+                foreach (Node child in elem.Children)
+                {
+                    Recurse(child);
+                }
+
+                CloseTag(elem);
+                break;
+            }
+        }
+    }
+
+    private void OpenTag(Element element)
+    {
+        string tagName = element.Tag.ToLower();
+        switch (tagName)
+        {
+            case "i":
             {
                 _styleStack.Push(GetStyle() with
                 {
@@ -67,12 +78,7 @@ internal sealed class Layout
                 });
                 break;
             }
-            case Tag { TagName: "/i" }:
-            {
-                _styleStack.TryPop(out _);
-                break;
-            }
-            case Tag { TagName: "b" }:
+            case "b":
             {
                 _styleStack.Push(GetStyle() with
                 {
@@ -80,12 +86,7 @@ internal sealed class Layout
                 });
                 break;
             }
-            case Tag { TagName: "/b" }:
-            {
-                _styleStack.TryPop(out _);
-                break;
-            }
-            case Tag { TagName: "small" }:
+            case "small":
             {
                 var parentStyle = GetStyle();
                 _styleStack.Push(parentStyle with
@@ -94,12 +95,7 @@ internal sealed class Layout
                 });
                 break;
             }
-            case Tag { TagName: "/small" }:
-            {
-                _styleStack.TryPop(out _);
-                break;
-            }
-            case Tag { TagName: "big" }:
+            case "big":
             {
                 var parentStyle = GetStyle();
                 _styleStack.Push(parentStyle with
@@ -108,43 +104,26 @@ internal sealed class Layout
                 });
                 break;
             }
-            case Tag { TagName: "/big" }:
-            {
-                _styleStack.TryPop(out _);
-                break;
-            }
-            case Tag { TagName: "br" or "br/" }:
+            case "br" or "br/":
             {
                 Flush();
                 break;
             }
-            case Tag { TagName: "/p" }:
-            {
-                Flush();
-                _cursorY += Constants.Vstep;
-                break;
-            }
-            case Tag { TagName: "h1" } h1Tag:
+            case "h1":
             {
                 Flush();
 
                 var parentStyle = GetStyle();
                 _styleStack.Push(parentStyle with
                 {
-                    TextAlignment = h1Tag.Attributes.Contains("class=\"title\"")
+                    TextAlignment = element.Attributes.ContainsKey("title")
                         ? "center"
                         : "left",
                     FontSize = parentStyle.FontSize + Constants.BigStep * 2
                 });
                 break;
             }
-            case Tag { TagName: "/h1" }:
-            {
-                Flush();
-                _styleStack.TryPop(out _);
-                break;
-            }
-            case Tag { TagName: "sup" }:
+            case "sup":
             {
                 var parentStyle = GetStyle();
                 _styleStack.Push(parentStyle with
@@ -154,8 +133,32 @@ internal sealed class Layout
                 });
                 break;
             }
-            case Tag { TagName: "/sup" }:
+        }
+    }
+
+    private void CloseTag(Element elem)
+    {
+        string tag = elem.Tag.ToLower();
+        switch (tag)
+        {
+            case "i":
+            case "b":
+            case "small":
+            case "big":
+            case "sup":
             {
+                _styleStack.TryPop(out _);
+                break;
+            }
+            case "p":
+            {
+                Flush();
+                _cursorY += Constants.Vstep;
+                break;
+            }
+            case "h1":
+            {
+                Flush();
                 _styleStack.TryPop(out _);
                 break;
             }
@@ -214,7 +217,7 @@ internal sealed class Layout
             long chars = paint.BreakText(text, _width - _cursorX - Constants.Hstep, out float measuredWidth);
             if (chars != text.Length)
             {
-                int lastBreak = text[..((int)chars)].LastIndexOfAny(" \n");
+                int lastBreak = text[..(int)chars].LastIndexOfAny(" \n");
                 if (lastBreak != -1)
                 {
                     var brokenText = text[..lastBreak];
@@ -228,7 +231,6 @@ internal sealed class Layout
                 {
                     Flush();
                     text = text[1..];
-                    continue;
                 }
             }
             else

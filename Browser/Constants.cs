@@ -13,6 +13,4 @@ internal static class Constants
     internal const int FontSize = 32;
     internal const int SmallStep = FontSize / 8;
     internal const int BigStep = FontSize / 4;
-
-    internal const int ScollStop = 1000;
 }

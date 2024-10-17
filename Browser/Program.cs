@@ -9,7 +9,7 @@ public static class Program
         // BaseAddress = new Uri("https://example.com"),
     };
 
-    private static List<Token> _tokens = [];
+    private static Node? _rootnode = null;
 
     public static void Main(string[] args)
     {
@@ -51,12 +51,12 @@ public static class Program
         response.EnsureSuccessStatusCode()
             .WriteRequestToConsole();
 
-        _tokens = response.Content.Lex();
+        _rootnode = response.Content.Parse();
     }
 
     private static void FileScheme(Uri url)
     {
-        _tokens = new FileInfo(url.LocalPath).Lex();
+        _rootnode = new FileInfo(url.LocalPath).Parse();
     }
 
     private static bool DataScheme(Uri url)
@@ -80,14 +80,15 @@ public static class Program
 
         var htmlString = localPath[splitDataUrl[1]].ToString();
         using StringReader reader = new(htmlString);
-        _tokens = reader.Lex();
+        _rootnode = reader.Parse();
 
         return true;
     }
 
     private static void OpenTkMain(string host)
     {
-        using Window wnd = new Window(host, _tokens);
+        ArgumentNullException.ThrowIfNull(_rootnode);
+        using Window wnd = new Window(host, _rootnode);
         wnd.Run();
     }
 }
@@ -102,59 +103,26 @@ static class HttpResponseMessageExtensions
         Console.WriteLine($"HTTP/{request?.Version}");
     }
 
-    internal static List<Token> Lex(this HttpContent content)
+    internal static Node Parse(this HttpContent content)
     {
         using Stream stream = content.ReadAsStream();
         using StreamReader reader = new(stream);
-        return Lex(reader);
+        return Parse(reader);
     }
 
-    internal static List<Token> Lex(this FileInfo fileInfo)
+    internal static Node Parse(this FileInfo fileInfo)
     {
         using FileStream stream = fileInfo.Open(FileMode.Open);
         using StreamReader reader = new(stream);
 
-        return Lex(reader);
+        return Parse(reader);
     }
 
-    public static List<Token> Lex(this TextReader reader)
+    public static Node Parse(this TextReader reader)
     {
-        List<Token> tokens = [];
-        StringBuilder buffer = new StringBuilder();
-
-        bool inTag = false;
-
-        int c;
-        while ((c = reader.Read()) != -1)
-        {
-            switch (c)
-            {
-                case '<':
-                    inTag = true;
-                    if (buffer.Length > 0)
-                    {
-                        tokens.Add(new Text(buffer.ToString()));
-                    }
-
-                    buffer.Clear();
-                    break;
-                case '>':
-                    inTag = false;
-                    string[] tagInfo = buffer.ToString().Split(' ');
-                    tokens.Add(new Tag(tagInfo[0], tagInfo[1..]));
-                    buffer.Clear();
-                    break;
-                default:
-                    buffer.Append((char)c);
-                    break;
-            }
-        }
-
-        if (!inTag && buffer.Length > 0)
-        {
-            tokens.Add(new Text(buffer.ToString()));
-        }
-
-        return tokens;
+        var parser = new HtmlParser(reader);
+        var node = parser.Parse();
+        node.PrintTree();
+        return node;
     }
 }
