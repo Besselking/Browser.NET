@@ -28,7 +28,7 @@ internal class Window : GameWindow
         {
             WindowBorder = WindowBorder.Resizable,
             WindowState = WindowState.Normal,
-            Title = $"Browser - {host}",
+            Title = $"Browser - {host}"
         };
 
         var monitors = Monitors.GetMonitors();
@@ -73,12 +73,11 @@ internal class Window : GameWindow
 
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
     {
+        base.OnFramebufferResize(e);
         SkiaResize(e.Width, e.Height);
 
         _displayList = Layout.CreateLayout(e.Width, _rootnode);
         Draw();
-
-        base.OnFramebufferResize(e);
     }
 
     protected override void OnUpdateFrame(FrameEventArgs args)
@@ -188,7 +187,7 @@ internal class Window : GameWindow
         SKRoundRect roundRect = new SKRoundRect(rect, 50f);
         ctx.DrawRoundRect(roundRect, new SKPaint
         {
-            Color = SKColors.Gray,
+            Color = SKColors.Gray
         });
     }
 

@@ -16,6 +16,12 @@ internal class HtmlParser
         "base", "basefont", "bgsound", "noscript", "link", "meta", "title", "style", "script"
     ], StringComparison.OrdinalIgnoreCase);
 
+    private static readonly SearchValues<string> PClosingTags = SearchValues.Create([
+        "address", "article", "aside", "blockquote", "details", "dialog", "div", "dl", "fieldset", "figcaption",
+        "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hgroup", "hr", "main", "menu",
+        "nav", "ol", "p", "pre", "search", "section", "table", "ul"
+    ], StringComparison.OrdinalIgnoreCase);
+
     internal HtmlParser(TextReader body)
     {
         _body = body;
@@ -102,9 +108,23 @@ internal class HtmlParser
                 return;
             }
 
+            ReadOnlySpan<char> closingTag = tag.AsSpan(1);
+
             var node = _unfinished.Pop();
             var parent = _unfinished.Peek();
-            parent.Children.Add(node);
+            if (parent.Tag.AsSpan().SequenceEqual(closingTag))
+            {
+                Console.WriteLine("Closing grandparent");
+                parent.Children.Add(node);
+
+                node = _unfinished.Pop();
+                parent = _unfinished.Peek();
+                parent.Children.Add(node);
+            }
+            else
+            {
+                parent.Children.Add(node);
+            }
         }
         else if (SelfClosingTags.Contains(tag))
         {
@@ -115,9 +135,50 @@ internal class HtmlParser
         else
         {
             var parent = _unfinished.TryPeek(out Element? parentNode) ? parentNode : null;
-            var node = new Element(parent, [], tag, attributes);
-            _unfinished.Push(node);
+
+            bool closesParent = ClosesParent(tag, parent);
+
+            if (closesParent)
+            {
+                var siblingNode = _unfinished.Pop();
+                var siblingParent = _unfinished.Peek();
+                siblingParent.Children.Add(siblingNode);
+
+                // Create sibling
+                var node = new Element(siblingParent, [], tag, attributes);
+                _unfinished.Push(node);
+            }
+            else
+            {
+                // Create child
+                var node = new Element(parent, [], tag, attributes);
+                _unfinished.Push(node);
+            }
         }
+    }
+
+    private bool ClosesParent(string tag, Element? parent)
+    {
+        if (parent is null)
+        {
+            return false;
+        }
+
+        switch (parent.Tag)
+        {
+            case "p": return ClosesPTag(tag);
+            case "li": return String.Equals(tag, "li", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // default, closing tags are needed.
+        return false;
+    }
+
+    private bool ClosesPTag(string tag)
+    {
+        bool alwaysClosesP = PClosingTags.Contains(tag);
+
+        return alwaysClosesP;
     }
 
     private Dictionary<string, string> GetAttributes(string[] attrpairs)
@@ -141,7 +202,7 @@ internal class HtmlParser
                 var key = keyValueStrings[0];
                 var value = keyValueStrings[1];
 
-                if (value.Length > 2 && value[0] is ('\'' or '"'))
+                if (value.Length > 2 && value[0] is '\'' or '"')
                 {
                     value = value[1..^1];
                 }
@@ -185,7 +246,7 @@ internal class HtmlParser
             {
                 AddTag("html");
             }
-            else if (openTags is ["html"] && tag is not ("head" or "body" or "/html"))
+            else if (openTags is ["html"] && tag is not (null or "head" or "body" or "/html"))
             {
                 AddTag(HeadTags.Contains(tag) ? "head" : "body");
             }

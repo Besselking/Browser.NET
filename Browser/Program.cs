@@ -1,6 +1,4 @@
-﻿using System.Text;
-
-namespace Browser;
+﻿namespace Browser;
 
 public static class Program
 {
@@ -9,7 +7,7 @@ public static class Program
         // BaseAddress = new Uri("https://example.com"),
     };
 
-    private static Node? _rootnode = null;
+    private static Node? _rootnode;
 
     public static void Main(string[] args)
     {

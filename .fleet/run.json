@@ -18,10 +18,18 @@
         },
         {
             "type": "dotnet",
-            "name": "Browser - data url",
+            "name": "Browser - data url li",
             "projectPath": "Browser/Browser.csproj",
             "args": [
-                "data:text/html,<body>Hello world!<sup>2</sup></body>"
+                "data:text/html,<body><ul><li>bla1<li><ul><li>bla2a<li>bla2b</ul><li>bla3</ul></body>"
+            ],
+        },
+        {
+            "type": "dotnet",
+            "name": "Browser - data url p",
+            "projectPath": "Browser/Browser.csproj",
+            "args": [
+                "data:text/html,<body><p>bla bla<p>bro bro<p>blech blech</body>"
             ],
         },
         {
@@ -29,7 +37,7 @@
             "name": "Browser - redirect",
             "projectPath": "Browser/Browser.csproj",
             "args": [
-                "http://browser.engineering/redirect3"
+                "https://browser.engineering/redirect3"
             ],
         },
     ]
